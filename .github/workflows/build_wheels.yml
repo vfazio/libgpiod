@@ -1,0 +1,71 @@
+name: Build
+
+on:
+  push:
+    tags:
+      # The main purpose of this workflow is to build wheels for release tags.
+      # It runs automatically on tags matching this pattern.
+      - "bindings-python-*"
+  # workflow_dispatch:
+    # Allow this workflow to be run manually (pushing to testpypi instead of pypi)
+
+jobs:
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4.1.2
+      - name: Build sdist
+        env:
+          LIBGPIOD_VERSION: 2.1
+        # create the sdist and dump it's contents
+        run: |
+          cd bindings/python
+          pip install build
+          python3 -m build -s
+          tar -tvf dist/*.tar.gz
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: libgpiod-source-dist
+          path: ./bindings/python/dist/*.tar.gz
+
+  build_wheels:
+    name: Build libgpiod wheels
+    needs: [build_sdist]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        cibw_arch: [x86_64, aarch64]
+        cibw_manylinux_target: [manylinux2014, manylinux_2_28]
+
+    steps:
+      - name: Download sdist
+        uses: actions/download-artifact@v4.1.4
+        with:
+          name: libgpiod-source-dist
+          path: sdist
+      - name: Extract sdist
+        run: |
+          mkdir extract
+          tar -C extract/ --strip-components=1 -xvf sdist/*.tar.gz
+          ls -R extract/
+      - name: Set up QEMU
+        if: ${{ matrix.cibw_arch == 'aarch64' }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.17.0
+        env:
+          CIBW_ARCHS_LINUX: ${{ matrix.cibw_arch }}
+          CIBW_MANYLINUX_AARCH64_IMAGE: quay.io/pypa/${{matrix.cibw_manylinux_target}}_aarch64
+          CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/${{matrix.cibw_manylinux_target}}_x86_64
+          CIBW_BUILD: "cp39-* cp310-* cp311-* cp312-*"
+          CIBW_SKIP: "*musllinux*"
+        with:
+          package-dir: ./extract
+          output-dir: dist
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: cibw-wheels-${{ matrix.cibw_arch }}-${{ matrix.cibw_manylinux_target }}
+          path: ./dist/*.whl
