@@ -500,7 +500,9 @@ class LineRequestSetOutputValues(TestCase):
 
 class ReconfigureRequestedLines(TestCase):
     def setUp(self) -> None:
-        self.sim = gpiosim.Chip(num_lines=8, line_names={3: "foo", 4: "bar", 6: "baz"})
+        self.sim = gpiosim.Chip(
+            num_lines=8, line_names={2: "fizz", 3: "foo", 4: "bar", 6: "baz"}
+        )
         self.chip = gpiod.Chip(self.sim.dev_path)
         self.req = self.chip.request_lines(
             {
@@ -530,7 +532,7 @@ class ReconfigureRequestedLines(TestCase):
         info = self.chip.get_line_info(2)
         self.assertEqual(info.direction, Direction.OUTPUT)
         self.req.reconfigure_lines(
-            {(0, 2, "foo", "baz"): gpiod.LineSettings(direction=Direction.INPUT)}
+            {(0, "fizz", "foo", "baz"): gpiod.LineSettings(direction=Direction.INPUT)}
         )
         info = self.chip.get_line_info(2)
         self.assertEqual(info.direction, Direction.INPUT)

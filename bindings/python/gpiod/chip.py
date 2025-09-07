@@ -302,7 +302,6 @@ class Chip:
             mapped_output_values = None
 
         name_map = dict()
-        offset_map = dict()
         global_output_values = list()
         req_lines = list()
 
@@ -327,9 +326,8 @@ class Chip:
                         else Value.INACTIVE
                     )
 
-                if isinstance(line, str):
-                    name_map[line] = offset
-                    offset_map[offset] = line
+                idx = line if isinstance(line, str) else self.get_line_info(line).name
+                name_map[idx] = offset
 
             line_cfg.add_line_settings(
                 offsets, _line_settings_to_ext(settings or LineSettings())
