@@ -304,6 +304,7 @@ class Chip:
         name_map = dict()
         offset_map = dict()
         global_output_values = list()
+        req_lines = list()
 
         for lines, settings in config.items():
             offsets = list()
@@ -314,6 +315,8 @@ class Chip:
             for line in lines:
                 offset = self.line_offset_from_id(line)
                 offsets.append(offset)
+                # track lines by requested ID, see LineRequest.lines
+                req_lines.append(line)
 
                 # If there's a global output value for this offset, store it in the
                 # list for later.
@@ -343,11 +346,8 @@ class Chip:
         request._chip_name = req_internal.chip_name
         request._offsets = req_internal.offsets
         request._name_map = name_map
-        request._offset_map = offset_map
 
-        request._lines = [
-            offset_map[off] if off in offset_map else off for off in request.offsets
-        ]
+        request._lines = req_lines
 
         return request
 
