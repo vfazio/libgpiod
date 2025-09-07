@@ -178,8 +178,14 @@ class LineRequest:
                 lines = [lines]
 
             for line in lines:
-                offset = self._line_to_offset(line)
-                line_settings[offset] = settings
+                try:
+                    offset = self._line_to_offset(line)
+                    line_settings[offset] = settings
+                except ValueError:
+                    # _line_to_offset will raise a ValueError when it encounters
+                    # an unrecognized line name. Ignore these like we do offsets
+                    # that were not in the original request.
+                    pass
 
         for offset in self.offsets:
             settings = line_settings.get(offset) or LineSettings()
