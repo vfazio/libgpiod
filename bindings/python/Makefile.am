@@ -5,6 +5,7 @@ EXTRA_DIST = \
 	MANIFEST.in \
 	README.md \
 	build_tests.py \
+	_custom_build/backend.py \
 	generate_pypi_artifacts.sh \
 	pyproject.toml \
 	setup.py

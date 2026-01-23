@@ -3,7 +3,8 @@
 
 [build-system]
 requires = ["setuptools>=69.0.0", "wheel", "packaging"]
-build-backend = "setuptools.build_meta"
+build-backend = "backend"
+backend-path = ["_custom_build"]
 
 [project]
 name = "gpiod"
@@ -11,6 +12,7 @@ dynamic = ["version"]
 description = "Python bindings for libgpiod"
 readme = "README.md"
 license = "LGPL-2.1-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.9.0"
 authors = [
   {name = "Bartosz Golaszewski", email = "brgl@bgdev.pl"},
@@ -63,6 +65,7 @@ include = [
   "gpiod/**/*.pyi",
   "tests/**/*.py",
   "tests/**/*.pyi",
+  "_custom_build/**/*.py",
 ]
 
 [tool.ruff.lint]
@@ -81,6 +84,7 @@ ignore=[
 "gpiod/__init__.py" = ["F403", "F405"]  # ignore warnings about star imports
 "tests/__main__.py" = ["F403"]
 "tests/**.py" = ["F841"]  # ignore warnings about unused variables
+"_custom_build/backend.py" = ["F403"]
 
 [tool.cibuildwheel]
 build = "cp*"

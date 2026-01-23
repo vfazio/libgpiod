@@ -5,6 +5,7 @@ include setup.py
 include build_tests.py
 include README.md
 include libgpiod-version.txt
+include _custom_build/backend.py
 
 recursive-include gpiod *.py
 recursive-include tests *.py
