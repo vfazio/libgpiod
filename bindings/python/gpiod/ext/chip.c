@@ -152,7 +152,7 @@ static PyObject *chip_get_line_name(chip_object *self, PyObject *args)
 	int ret;
 	unsigned int offset;
 	struct gpiod_line_info *info;
-	PyObject *line_name;
+	PyObject *line_name = NULL;
 	const char *name;
 
 	ret = PyArg_ParseTuple(args, "I", &offset);
@@ -166,16 +166,15 @@ static PyObject *chip_get_line_name(chip_object *self, PyObject *args)
 		return Py_gpiod_SetErrFromErrno();
 
 	name = gpiod_line_info_get_name(info);
-	if (!name) {
-		Py_INCREF(Py_None);
-		line_name = Py_None;
-	} else {
+	if (name)
 		line_name = PyUnicode_FromString(name);
-	}
 
 	gpiod_line_info_free(info);
 
-	return line_name;
+	if (line_name)
+		return line_name;
+
+	Py_RETURN_NONE;
 }
 
 static PyObject *
