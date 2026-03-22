@@ -75,5 +75,15 @@ static PyModuleDef module_def = {
 
 PyMODINIT_FUNC PyInit__ext(void)
 {
-	return PyModule_Create(&module_def);
+	PyObject *module;
+
+	module = PyModule_Create(&module_def);
+	if (!module)
+		return NULL;
+
+#ifdef Py_GIL_DISABLED
+    PyUnstable_Module_SetGIL(module, Py_MOD_GIL_NOT_USED);
+#endif
+
+	return module;
 }

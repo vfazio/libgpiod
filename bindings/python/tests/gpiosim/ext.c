@@ -313,6 +313,10 @@ PyMODINIT_FUNC PyInit__ext(void)
 	if (!module)
 		return NULL;
 
+#ifdef Py_GIL_DISABLED
+    PyUnstable_Module_SetGIL(module, Py_MOD_GIL_NOT_USED);
+#endif
+
 	ret = PyState_AddModule(module, &module_def);
 	if (ret) {
 		Py_DECREF(module);
