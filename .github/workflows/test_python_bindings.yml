@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Check system information
         run: |
+          sudo apt-get update
+          sudo apt-get install -y linux-modules-6.17.0-1008-azure
           uname -a
           find /lib/modules/
           cat /boot/config-$(uname -r)
