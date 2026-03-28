@@ -1,0 +1,58 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14', '3.14t', '3.15', '3.15t']
+    name: Test Python bindings using ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            catch2 \
+            linux-modules-extra-$(uname -r) \
+            libtool \
+            meson \
+            pkg-config \
+            libkmod-dev \
+            libmount-dev \
+            libglib2.0-dev
+      - name: Setup python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Python dependencies
+        run: |
+          pip install -U pip build setuptools
+      - name: Configure build
+        run: |
+          meson setup _build -Dtests=enabled -Dbindings-python=enabled
+      - name: Build library
+        run: |
+          meson compile -C _build -j$(nproc)
+      - name: Run python test suite
+        run: |
+          sudo meson test -C _build --verbose --print-errorlogs
+  build-wheels:
+    name: Build and verify wheels
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      LIBGPIOD_VERSION: "2.3.1"
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Run wheel build script
+        run: |
+          cd bindings/python
+          ./generate_pypi_artifacts.sh -v "${LIBGPIOD_VERSION}" -c -f
