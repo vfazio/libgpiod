@@ -15,8 +15,8 @@ jobs:
       - name: Check system information
         run: |
           uname -a
-          find /lib/modules/ -name "*.ko"
-          cat /proc/config
+          find /lib/modules/
+          ls /boot/
           exit 1
       - uses: actions/checkout@v6
       - name: Install system build dependencies
