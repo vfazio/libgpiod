@@ -12,20 +12,21 @@ jobs:
         python-version: ['3.10'] #, '3.11', '3.12', '3.13', '3.14', '3.14t']
     name: Testi Python bindings using ${{ matrix.python-version }}
     steps:
-      - name: Check system information
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y linux-modules-6.17.0-1008-azure
-          sudo apt-get install -y linux-modules-extra-6.17.0-1008-azure
-          uname -a
-          find /lib/modules/
-          cat /boot/config-$(uname -r)
-          exit 1
+      # - name: Check system information
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y linux-modules-6.17.0-1008-azure
+      #     sudo apt-get install -y linux-modules-extra-$(uname -r)
+      #     uname -a
+      #     find /lib/modules/
+      #     cat /boot/config-$(uname -r)
+      #     exit 1
       - uses: actions/checkout@v6
       - name: Install system build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            linux-modules-extra-$(uname -r)
             autoconf \
             autoconf-archive \
             automake \
