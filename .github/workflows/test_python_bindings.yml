@@ -10,10 +10,10 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.10'] #, '3.11', '3.12', '3.13', '3.14', '3.14t']
-    name: Build bindings using ${{ matrix.python-version }}
+    name: Testi Python bindings using ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6
-      - name: Install dependencies
+      - name: Install system build dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -24,12 +24,15 @@ jobs:
             pkg-config \
             libkmod-dev \
             libmount-dev \
-            libglib2.0-dev \
-            python3-build
+            libglib2.0-dev
       - name: Setup python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build setuptools
       - name: Configure build
         run: |
           ./autogen.sh --enable-bindings-python --enable-tests
