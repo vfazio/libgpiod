@@ -56,4 +56,4 @@ jobs:
       - name: Run python test suite
         run: |
           cd bindings/python
-          make python-tests-run
+          sudo make python-tests-run
