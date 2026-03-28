@@ -24,7 +24,8 @@ jobs:
             pkg-config \
             libkmod-dev \
             libmount-dev \
-            libglib2.0-dev
+            libglib2.0-dev \
+            python3-build
       - name: Setup python
         uses: actions/setup-python@v6
         with:
