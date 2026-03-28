@@ -1,0 +1,45 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python-version: ['3.10'] #, '3.11', '3.12', '3.13', '3.14', '3.14t']
+    name: Build bindings using ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf \
+            autoconf-archive \
+            automake \
+            libtool \
+            pkg-config \
+            libkmod-dev \
+            libmount-dev \
+            libglib2.0-dev
+      - name: Setup python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Configure build
+        run: |
+          ./autogen.sh --enable-bindings-python --enable-tests
+      - name: Run build
+        run: |
+          make -j$(nproc)
+      - name: Build python test suite
+        run: |
+          cd bindings/python
+          make python-tests
+      - name: Run python test suite
+        run: |
+          cd bindings/python
+          make python-tests-run
