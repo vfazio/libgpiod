@@ -4,14 +4,15 @@
 
 """Minimal example of asynchronously watching for edges on a single line."""
 
-import gpiod
 import select
-
 from datetime import timedelta
+
+import gpiod
+from gpiod.edge_event import EdgeEvent
 from gpiod.line import Bias, Edge
 
 
-def edge_type_str(event):
+def edge_type_str(event: EdgeEvent) -> str:
     if event.event_type is event.Type.RISING_EDGE:
         return "Rising"
     if event.event_type is event.Type.FALLING_EDGE:
@@ -19,7 +20,7 @@ def edge_type_str(event):
     return "Unknown"
 
 
-def async_watch_line_value(chip_path, line_offset, done_fd):
+def async_watch_line_value(chip_path: str, line_offset: int, done_fd: int) -> None:
     # Assume a button connecting the pin to ground,
     # so pull it up and provide some debounce.
     with gpiod.request_lines(
@@ -46,9 +47,9 @@ def async_watch_line_value(chip_path, line_offset, done_fd):
                 # handle any edge events
                 for event in request.read_edge_events():
                     print(
-                        "offset: {}  type: {:<7}  event #{}".format(
-                            event.line_offset, edge_type_str(event), event.line_seqno
-                        )
+                        f"offset: {event.line_offset}"
+                        f"  type: {edge_type_str(event):<7}"
+                        f"  event #{event.line_seqno}"
                     )
 
 
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     # run the async executor (select.poll) in a thread to demonstrate a graceful exit.
     done_fd = os.eventfd(0)
 
-    def bg_thread():
+    def bg_thread() -> None:
         try:
             async_watch_line_value("/dev/gpiochip0", 5, done_fd)
         except OSError as ex:

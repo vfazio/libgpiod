@@ -5,11 +5,10 @@
 """Example of a bi-directional line requested as input and then switched to output."""
 
 import gpiod
-
 from gpiod.line import Direction, Value
 
 
-def reconfigure_input_to_output(chip_path, line_offset):
+def reconfigure_input_to_output(chip_path: str, line_offset: int) -> None:
     # request the line initially as an input
     with gpiod.request_lines(
         chip_path,
@@ -18,7 +17,7 @@ def reconfigure_input_to_output(chip_path, line_offset):
     ) as request:
         # read the current line value
         value = request.get_value(line_offset)
-        print("{}={} (input)".format(line_offset, value))
+        print(f"{line_offset}={value} (input)")
         # switch the line to an output and drive it low
         request.reconfigure_lines(
             config={
@@ -29,7 +28,7 @@ def reconfigure_input_to_output(chip_path, line_offset):
         )
         # report the current driven value
         value = request.get_value(line_offset)
-        print("{}={} (output)".format(line_offset, value))
+        print(f"{line_offset}={value} (output)")
 
 
 if __name__ == "__main__":
