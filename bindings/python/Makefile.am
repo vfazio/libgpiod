@@ -20,7 +20,7 @@ python-tests-run:
 	PYTHONPATH=$(abs_top_srcdir)/bindings/python \
 	LD_LIBRARY_PATH=$(abs_top_builddir)/lib/.libs/:\
 	$(abs_top_builddir)/tests/gpiosim/.libs/ \
-	$(PYTHON) -B -m tests
+	$(PYTHON) -B -X dev -X tracemalloc=10 -m tests
 
 else
 
