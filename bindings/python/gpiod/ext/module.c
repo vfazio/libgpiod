@@ -114,13 +114,12 @@ static const struct module_const module_constants[] = {
 };
 
 static PyObject *
-module_is_gpiochip_device(PyObject *Py_UNUSED(self), PyObject *args)
+module_is_gpiochip_device(PyObject *Py_UNUSED(self), PyObject *arg)
 {
 	const char *path;
-	int ret;
 
-	ret =  PyArg_ParseTuple(args, "s", &path);
-	if (!ret)
+	path = PyUnicode_AsUTF8(arg);
+	if (!path)
 		return NULL;
 
 	return PyBool_FromLong(gpiod_is_gpiochip_device(path));
@@ -130,15 +129,9 @@ static PyMethodDef module_methods[] = {
 	{
 		.ml_name = "is_gpiochip_device",
 		.ml_meth = (PyCFunction)module_is_gpiochip_device,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{ }
-};
-
-static PyModuleDef module_def = {
-	PyModuleDef_HEAD_INIT,
-	.m_name = "gpiod._ext",
-	.m_methods = module_methods,
 };
 
 extern PyTypeObject chip_type;
@@ -154,53 +147,57 @@ static PyTypeObject *types[] = {
 	NULL,
 };
 
-PyMODINIT_FUNC PyInit__ext(void)
+static int module_exec(PyObject* module)
 {
 	const struct module_const *modconst;
-	PyObject *module, *all;
+	PyObject *all;
 	PyTypeObject **type;
 	int ret;
 
-	module = PyModule_Create(&module_def);
-	if (!module)
-		return NULL;
-
 	ret = PyModule_AddStringConstant(module, "api_version",
 					 gpiod_api_version());
-	if (ret) {
-		Py_DECREF(module);
-		return NULL;
-	}
+
+	if (ret < 0)
+		return -1;
 
 	all = PyList_New(0);
-	if (!all) {
-		Py_DECREF(module);
-		return NULL;
-	}
+	if (!all)
+		return -1;
 
 	ret = PyModule_AddObjectRef(module, "__all__", all);
 	Py_DECREF(all);
-	if (ret) {
-		Py_DECREF(module);
-		return NULL;
-	}
+	if (ret)
+		return -1;
 
 	for (type = types; *type; type++) {
 		ret = PyModule_AddType(module, *type);
-		if (ret) {
-			Py_DECREF(module);
-			return NULL;
-		}
+		if (ret < 0)
+			return -1;
 	}
 
 	for (modconst = module_constants; modconst->name; modconst++) {
-		ret = PyModule_AddIntConstant(module,
-					      modconst->name, modconst->val);
-		if (ret) {
-			Py_DECREF(module);
-			return NULL;
-		}
+		ret = PyModule_AddIntConstant(module, modconst->name,
+					      modconst->val);
+		if (ret < 0)
+			return -1;
 	}
 
-	return module;
+	return 0;
+}
+
+static struct PyModuleDef_Slot module_slots[] = {
+	{Py_mod_exec, module_exec},
+	{0, NULL},
+};
+
+static PyModuleDef module_def = {
+	PyModuleDef_HEAD_INIT,
+	.m_name = "gpiod._ext",
+	.m_methods = module_methods,
+	.m_slots = module_slots,
+};
+
+PyMODINIT_FUNC PyInit__ext(void)
+{
+	return PyModuleDef_Init(&module_def);
 }

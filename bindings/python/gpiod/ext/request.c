@@ -12,20 +12,19 @@ typedef struct {
 	struct gpiod_edge_event_buffer *buffer;
 } request_object;
 
-static int request_init(PyObject *Py_UNUSED(ignored0),
-			PyObject *Py_UNUSED(ignored1),
-			PyObject *Py_UNUSED(ignored2))
+static void internal_request_release(request_object *self)
 {
-	PyErr_SetString(PyExc_NotImplementedError,
-			"_ext.LineRequest cannot be instantiated");
-
-	return -1;
+	if (self->request){
+		Py_BEGIN_ALLOW_THREADS;
+		gpiod_line_request_release(self->request);
+		Py_END_ALLOW_THREADS;
+		self->request = NULL;
+	}
 }
 
 static void request_finalize(request_object *self)
 {
-	if (self->request)
-		PyObject_CallMethod((PyObject *)self, "release", "");
+	internal_request_release(self);
 
 	if (self->offsets)
 		PyMem_Free(self->offsets);
@@ -121,10 +120,7 @@ static PyGetSetDef request_getset[] = {
 static PyObject *
 request_release(request_object *self, PyObject *Py_UNUSED(ignored))
 {
-	Py_BEGIN_ALLOW_THREADS;
-	gpiod_line_request_release(self->request);
-	Py_END_ALLOW_THREADS;
-	self->request = NULL;
+	internal_request_release(self);
 
 	Py_RETURN_NONE;
 }
@@ -135,15 +131,20 @@ static void clear_buffers(request_object *self)
 	memset(self->values, 0, self->num_lines * sizeof(int));
 }
 
-static PyObject *request_get_values(request_object *self, PyObject *args)
+static PyObject *request_get_values(request_object *self, PyObject *const *args,
+				    Py_ssize_t nargs)
 {
 	PyObject *offsets, *values, *val, *type, *iter, *next;
 	Py_ssize_t num_offsets, pos;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "OO", &offsets, &values);
-	if (!ret)
-		return NULL;
+	if (nargs != 2)
+		return PyErr_Format(PyExc_TypeError,
+				    "get_values called with %ld arguments",
+				    nargs);
+
+	offsets = args[0];
+	values = args[1];
 
 	num_offsets = PyObject_Size(offsets);
 	if (num_offsets < 0)
@@ -208,15 +209,13 @@ static PyObject *request_get_values(request_object *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject *request_set_values(request_object *self, PyObject *args)
+static PyObject *request_set_values(request_object *self, PyObject *arg)
 {
 	PyObject *values, *key, *val, *val_stripped;
 	Py_ssize_t pos = 0, index = 0;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "O", &values);
-	if (!ret)
-		return NULL;
+	values = arg;
 
 	if (PyObject_Size(values) > (Py_ssize_t)self->num_lines) {
 		PyErr_SetString(PyExc_ValueError,
@@ -256,15 +255,13 @@ static PyObject *request_set_values(request_object *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject *request_reconfigure_lines(request_object *self, PyObject *args)
+static PyObject *request_reconfigure_lines(request_object *self, PyObject *arg)
 {
 	struct gpiod_line_config *line_cfg;
 	PyObject *line_cfg_obj;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "O", &line_cfg_obj);
-	if (!ret)
-		return NULL;
+	line_cfg_obj = arg;
 
 	line_cfg = Py_gpiod_LineConfigGetData(line_cfg_obj);
 	if (!line_cfg)
@@ -279,18 +276,16 @@ static PyObject *request_reconfigure_lines(request_object *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject *request_read_edge_events(request_object *self, PyObject *args)
+static PyObject *request_read_edge_events(request_object *self, PyObject *arg)
 {
 	PyObject *max_events_obj, *event_obj, *events, *type;
 	size_t max_events, num_events, i;
 	struct gpiod_edge_event *event;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "O", &max_events_obj);
-	if (!ret)
-		return NULL;
+	max_events_obj = arg;
 
-	if (max_events_obj != Py_None) {
+	if (!Py_IsNone(max_events_obj)) {
 		max_events = PyLong_AsSize_t(max_events_obj);
 		if (PyErr_Occurred())
 			return NULL;
@@ -358,23 +353,23 @@ static PyMethodDef request_methods[] = {
 	},
 	{
 		.ml_name = "get_values",
-		.ml_meth = (PyCFunction)request_get_values,
-		.ml_flags = METH_VARARGS,
+		.ml_meth = _PyCFunction_CAST(request_get_values),
+		.ml_flags = METH_FASTCALL,
 	},
 	{
 		.ml_name = "set_values",
 		.ml_meth = (PyCFunction)request_set_values,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{
 		.ml_name = "reconfigure_lines",
 		.ml_meth = (PyCFunction)request_reconfigure_lines,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{
 		.ml_name = "read_edge_events",
 		.ml_meth = (PyCFunction)request_read_edge_events,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{ }
 };
@@ -384,8 +379,6 @@ PyTypeObject request_type = {
 	.tp_name = "gpiod._ext.Request",
 	.tp_basicsize = sizeof(request_object),
 	.tp_flags = Py_TPFLAGS_DEFAULT,
-	.tp_new = PyType_GenericNew,
-	.tp_init = (initproc)request_init,
 	.tp_finalize = (destructor)request_finalize,
 	.tp_dealloc = (destructor)Py_gpiod_dealloc,
 	.tp_getset = request_getset,

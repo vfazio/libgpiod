@@ -54,7 +54,8 @@ static unsigned int *make_offsets(PyObject *obj, Py_ssize_t len)
 }
 
 static PyObject *
-line_config_add_line_settings(line_config_object *self, PyObject *args)
+line_config_add_line_settings(line_config_object *self, PyObject *const *args,
+			      Py_ssize_t nargs)
 {
 	PyObject *offsets_obj, *settings_obj;
 	struct gpiod_line_settings *settings;
@@ -62,9 +63,13 @@ line_config_add_line_settings(line_config_object *self, PyObject *args)
 	Py_ssize_t num_offsets;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "OO", &offsets_obj, &settings_obj);
-	if (!ret)
-		return NULL;
+	if (nargs != 2)
+		return PyErr_Format(PyExc_TypeError,
+				    "add_line_settings called with %ld arguments",
+				    nargs);
+
+	offsets_obj = args[0];
+	settings_obj = args[1];
 
 	num_offsets = PyObject_Size(offsets_obj);
 	if (num_offsets < 0)
@@ -90,16 +95,14 @@ line_config_add_line_settings(line_config_object *self, PyObject *args)
 }
 
 static PyObject *
-line_config_set_output_values(line_config_object *self, PyObject *args)
+line_config_set_output_values(line_config_object *self, PyObject *arg)
 {
 	PyObject *values, *iter, *next, *val_stripped;
 	enum gpiod_line_value *valbuf;
 	Py_ssize_t num_values, pos;
 	int ret;
 
-	values = PyTuple_GetItem(args, 0);
-	if (!values)
-		return NULL;
+	values = arg;
 
 	num_values = PyObject_Size(values);
 	if (num_values < 0)
@@ -151,13 +154,13 @@ line_config_set_output_values(line_config_object *self, PyObject *args)
 static PyMethodDef line_config_methods[] = {
 	{
 		.ml_name = "add_line_settings",
-		.ml_meth = (PyCFunction)line_config_add_line_settings,
-		.ml_flags = METH_VARARGS,
+		.ml_meth = _PyCFunction_CAST(line_config_add_line_settings),
+		.ml_flags = METH_FASTCALL,
 	},
 	{
 		.ml_name = "set_output_values",
 		.ml_meth = (PyCFunction)line_config_set_output_values,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{ }
 };
