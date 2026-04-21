@@ -128,16 +128,29 @@ static PyObject *make_line_info(struct gpiod_line_info *info)
 	return ret;
 }
 
-static PyObject *chip_get_line_info(chip_object *self, PyObject *args)
+static PyObject *chip_get_line_info(chip_object *self, PyObject *const *args,
+				    Py_ssize_t nargs)
 {
 	struct gpiod_line_info *info;
 	unsigned int offset;
 	PyObject *info_obj;
-	int ret, watch;
+	int watch;
 
-	ret = PyArg_ParseTuple(args, "Ip", &offset, &watch);
-	if (!ret)
+	if (nargs != 2)
+		return PyErr_Format(PyExc_TypeError,
+				    "get_line_info called with %ld arguments",
+				    nargs);
+
+	offset = Py_gpiod_PyLongAsUnsignedInt(args[0]);
+	if (PyErr_Occurred())
 		return NULL;
+
+	watch = PyObject_IsTrue(args[1]);
+	if (watch == -1) {
+		PyErr_SetString(PyExc_TypeError,
+				"get_line_info called with invalid type for 'watch'");
+		return NULL;
+	}
 
 	Py_BEGIN_ALLOW_THREADS;
 	if (watch)
@@ -153,16 +166,15 @@ static PyObject *chip_get_line_info(chip_object *self, PyObject *args)
 	return info_obj;
 }
 
-static PyObject *chip_get_line_name(chip_object *self, PyObject *args)
+static PyObject *chip_get_line_name(chip_object *self, PyObject *arg)
 {
-	int ret;
 	unsigned int offset;
 	struct gpiod_line_info *info;
 	PyObject *line_name = NULL;
 	const char *name;
 
-	ret = PyArg_ParseTuple(args, "I", &offset);
-	if (!ret)
+	offset = Py_gpiod_PyLongAsUnsignedInt(arg);
+	if (PyErr_Occurred())
 		return NULL;
 
 	Py_BEGIN_ALLOW_THREADS;
@@ -184,13 +196,13 @@ static PyObject *chip_get_line_name(chip_object *self, PyObject *args)
 }
 
 static PyObject *
-chip_unwatch_line_info(chip_object *self, PyObject *args)
+chip_unwatch_line_info(chip_object *self, PyObject *arg)
 {
 	unsigned int offset;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "I", &offset);
-	if (!ret)
+	offset = Py_gpiod_PyLongAsUnsignedInt(arg);
+	if (PyErr_Occurred())
 		return NULL;
 
 	Py_BEGIN_ALLOW_THREADS;
@@ -240,13 +252,13 @@ chip_read_info_event(chip_object *self, PyObject *Py_UNUSED(ignored))
 	return event_obj;
 }
 
-static PyObject *chip_line_offset_from_id(chip_object *self, PyObject *args)
+static PyObject *chip_line_offset_from_id(chip_object *self, PyObject *arg)
 {
-	int ret, offset;
-	char *name;
+	int offset;
+	const char *name;
 
-	ret = PyArg_ParseTuple(args, "s", &name);
-	if (!ret)
+	name = PyUnicode_AsUTF8(arg);
+	if (!name)
 		return NULL;
 
 	Py_BEGIN_ALLOW_THREADS;
@@ -295,18 +307,22 @@ make_request_config(PyObject *consumer_obj, PyObject *event_buffer_size_obj)
 	return req_cfg;
 }
 
-static PyObject *chip_request_lines(chip_object *self, PyObject *args)
+static PyObject *chip_request_lines(chip_object *self, PyObject *const *args,
+				    Py_ssize_t nargs)
 {
 	PyObject *line_config, *consumer, *event_buffer_size, *req_obj;
 	struct gpiod_request_config *req_cfg;
 	struct gpiod_line_config *line_cfg;
 	struct gpiod_line_request *request;
-	int ret;
 
-	ret = PyArg_ParseTuple(args, "OOO",
-			       &line_config, &consumer, &event_buffer_size);
-	if (!ret)
-		return NULL;
+	if (nargs != 3)
+		return PyErr_Format(PyExc_TypeError,
+				    "request_lines called with %ld arguments",
+				    nargs);
+
+	line_config = args[0];
+	consumer = args[1];
+	event_buffer_size = args[2];
 
 	line_cfg = Py_gpiod_LineConfigGetData(line_config);
 	if (!line_cfg)
@@ -346,13 +362,13 @@ static PyMethodDef chip_methods[] = {
 	},
 	{
 		.ml_name = "get_line_info",
-		.ml_meth = (PyCFunction)chip_get_line_info,
-		.ml_flags = METH_VARARGS,
+		.ml_meth = _PyCFunction_CAST(chip_get_line_info),
+		.ml_flags = METH_FASTCALL,
 	},
 	{
 		.ml_name = "unwatch_line_info",
 		.ml_meth = (PyCFunction)chip_unwatch_line_info,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{
 		.ml_name = "read_info_event",
@@ -362,17 +378,17 @@ static PyMethodDef chip_methods[] = {
 	{
 		.ml_name = "line_offset_from_id",
 		.ml_meth = (PyCFunction)chip_line_offset_from_id,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{
 		.ml_name = "request_lines",
-		.ml_meth = (PyCFunction)chip_request_lines,
-		.ml_flags = METH_VARARGS,
+		.ml_meth = _PyCFunction_CAST(chip_request_lines),
+		.ml_flags = METH_FASTCALL,
 	},
 	{
 		.ml_name = "get_line_name",
 		.ml_meth = (PyCFunction)chip_get_line_name,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{ }
 };
