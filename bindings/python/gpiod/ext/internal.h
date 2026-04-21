@@ -21,6 +21,12 @@ struct gpiod_line_settings *Py_gpiod_LineSettingsGetData(PyObject *obj);
 #else
 PyObject *Py_gpiod_GetModuleAttrString(const char *modname,
 				       const char *attrname);
+
+#if PY_VERSION_HEX < 0x030B0000
+/* Backport of standard macro available in Python 3.11 */
+#define _PyCFunction_CAST(func) ((PyCFunction)(void(*)(void))(func))
+#endif /* PY_VERSION_HEX < 0x030B0000 */
+
 #endif /* PY_VERSION_HEX >= 0x030E0000 */
 
 #endif /* __LIBGPIOD_PYTHON_MODULE_H__ */
