@@ -114,13 +114,12 @@ static const struct module_const module_constants[] = {
 };
 
 static PyObject *
-module_is_gpiochip_device(PyObject *Py_UNUSED(self), PyObject *args)
+module_is_gpiochip_device(PyObject *Py_UNUSED(self), PyObject *arg)
 {
 	const char *path;
-	int ret;
 
-	ret =  PyArg_ParseTuple(args, "s", &path);
-	if (!ret)
+	path = PyUnicode_AsUTF8(arg);
+	if (!path)
 		return NULL;
 
 	return PyBool_FromLong(gpiod_is_gpiochip_device(path));
@@ -130,7 +129,7 @@ static PyMethodDef module_methods[] = {
 	{
 		.ml_name = "is_gpiochip_device",
 		.ml_meth = (PyCFunction)module_is_gpiochip_device,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{ }
 };
