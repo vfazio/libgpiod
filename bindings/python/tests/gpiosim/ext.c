@@ -4,6 +4,28 @@
 #include <gpiosim.h>
 #include <Python.h>
 
+/* Backport of standard macro available in Python 3.11 */
+#if PY_VERSION_HEX < 0x030B0000
+#define _PyCFunction_CAST(func) ((PyCFunction)(void(*)(void))(func))
+#endif
+
+/* Copied from gpiod/ext/common.c */
+static unsigned int Py_gpiod_PyLongAsUnsignedInt(PyObject *pylong)
+{
+	unsigned long tmp;
+
+	tmp = PyLong_AsUnsignedLong(pylong);
+	if (PyErr_Occurred())
+		return 0;
+
+	if (tmp > UINT_MAX) {
+		PyErr_SetString(PyExc_ValueError, "value exceeding UINT_MAX");
+		return 0;
+	}
+
+	return tmp;
+}
+
 struct module_const {
 	const char *name;
 	long val;
@@ -126,13 +148,13 @@ static PyGetSetDef chip_getset[] = {
 	{ }
 };
 
-static PyObject *chip_set_label(chip_object *self, PyObject *args)
+static PyObject *chip_set_label(chip_object *self, PyObject *arg)
 {
 	const char *label;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "s", &label);
-	if (!ret)
+	label = PyUnicode_AsUTF8(arg);
+	if (!label)
 		return NULL;
 
 	ret = gpiosim_bank_set_label(self->bank, label);
@@ -142,13 +164,13 @@ static PyObject *chip_set_label(chip_object *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject *chip_set_num_lines(chip_object *self, PyObject *args)
+static PyObject *chip_set_num_lines(chip_object *self, PyObject *arg)
 {
 	unsigned int num_lines;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "I", &num_lines);
-	if (!ret)
+	num_lines = Py_gpiod_PyLongAsUnsignedInt(arg);
+	if (PyErr_Occurred())
 		return NULL;
 
 	ret = gpiosim_bank_set_num_lines(self->bank, num_lines);
@@ -158,14 +180,23 @@ static PyObject *chip_set_num_lines(chip_object *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject *chip_set_line_name(chip_object *self, PyObject *args)
+static PyObject *chip_set_line_name(chip_object *self, PyObject *const *args,
+				    Py_ssize_t nargs)
 {
 	unsigned int offset;
 	const char *name;
 	int ret;
 
-	ret = PyArg_ParseTuple(args, "Is", &offset, &name);
-	if (!ret)
+	if (nargs != 2)
+		return PyErr_Format(PyExc_TypeError,
+				    "set_line_name called with %ld arguments",
+				    nargs);
+
+	offset = Py_gpiod_PyLongAsUnsignedInt(args[0]);
+	if (PyErr_Occurred())
+		return NULL;
+	name = PyUnicode_AsUTF8(args[1]);
+	if (PyErr_Occurred())
 		return NULL;
 
 	ret = gpiosim_bank_set_line_name(self->bank, offset, name);
@@ -175,14 +206,25 @@ static PyObject *chip_set_line_name(chip_object *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject *chip_set_hog(chip_object *self, PyObject *args)
+static PyObject *chip_set_hog(chip_object *self, PyObject *const *args,
+			      Py_ssize_t nargs)
 {
-	unsigned int offset;
+	unsigned int offset, dir;
 	const char *name;
-	int ret, dir;
+	int ret;
 
-	ret = PyArg_ParseTuple(args, "Isi", &offset, &name, &dir);
-	if (!ret)
+	if (nargs != 3)
+		return PyErr_Format(PyExc_TypeError,
+				    "set_hog called with %ld arguments", nargs);
+
+	offset = Py_gpiod_PyLongAsUnsignedInt(args[0]);
+	if (PyErr_Occurred())
+		return NULL;
+	name = PyUnicode_AsUTF8(args[1]);
+	if (PyErr_Occurred())
+		return NULL;
+	dir = Py_gpiod_PyLongAsUnsignedInt(args[2]);
+	if (PyErr_Occurred())
 		return NULL;
 
 	ret = gpiosim_bank_hog_line(self->bank, offset, name, dir);
@@ -203,13 +245,13 @@ static PyObject *chip_enable(chip_object *self, PyObject *Py_UNUSED(args))
 	Py_RETURN_NONE;
 }
 
-static PyObject *chip_get_value(chip_object *self, PyObject *args)
+static PyObject *chip_get_value(chip_object *self, PyObject *arg)
 {
 	unsigned int offset;
-	int ret, val;
+	int val;
 
-	ret = PyArg_ParseTuple(args, "I", &offset);
-	if (!ret)
+	offset = Py_gpiod_PyLongAsUnsignedInt(arg);
+	if (PyErr_Occurred())
 		return NULL;
 
 	val = gpiosim_bank_get_value(self->bank, offset);
@@ -219,13 +261,21 @@ static PyObject *chip_get_value(chip_object *self, PyObject *args)
 	return PyLong_FromLong(val);
 }
 
-static PyObject *chip_set_pull(chip_object *self, PyObject *args)
+static PyObject *chip_set_pull(chip_object *self, PyObject *const *args,
+			       Py_ssize_t nargs)
 {
-	unsigned int offset;
-	int ret, pull;
+	unsigned int offset, pull;
+	int ret;
 
-	ret = PyArg_ParseTuple(args, "II", &offset, &pull);
-	if (!ret)
+	if (nargs != 2)
+		return PyErr_Format(PyExc_TypeError,
+				    "set_pull called with %ld arguments", nargs);
+
+	offset = Py_gpiod_PyLongAsUnsignedInt(args[0]);
+	if (PyErr_Occurred())
+		return NULL;
+	pull = Py_gpiod_PyLongAsUnsignedInt(args[1]);
+	if (PyErr_Occurred())
 		return NULL;
 
 	ret = gpiosim_bank_set_pull(self->bank, offset, pull);
@@ -239,22 +289,22 @@ static PyMethodDef chip_methods[] = {
 	{
 		.ml_name = "set_label",
 		.ml_meth = (PyCFunction)chip_set_label,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{
 		.ml_name = "set_num_lines",
 		.ml_meth = (PyCFunction)chip_set_num_lines,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{
 		.ml_name = "set_line_name",
-		.ml_meth = (PyCFunction)chip_set_line_name,
-		.ml_flags = METH_VARARGS,
+		.ml_meth = _PyCFunction_CAST(chip_set_line_name),
+		.ml_flags = METH_FASTCALL,
 	},
 	{
 		.ml_name = "set_hog",
-		.ml_meth = (PyCFunction)chip_set_hog,
-		.ml_flags = METH_VARARGS,
+		.ml_meth = _PyCFunction_CAST(chip_set_hog),
+		.ml_flags = METH_FASTCALL,
 	},
 	{
 		.ml_name = "enable",
@@ -264,12 +314,12 @@ static PyMethodDef chip_methods[] = {
 	{
 		.ml_name = "get_value",
 		.ml_meth = (PyCFunction)chip_get_value,
-		.ml_flags = METH_VARARGS,
+		.ml_flags = METH_O,
 	},
 	{
 		.ml_name = "set_pull",
-		.ml_meth = (PyCFunction)chip_set_pull,
-		.ml_flags = METH_VARARGS,
+		.ml_meth = _PyCFunction_CAST(chip_set_pull),
+		.ml_flags = METH_FASTCALL,
 	},
 	{ }
 };
