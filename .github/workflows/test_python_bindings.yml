@@ -19,10 +19,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             linux-modules-extra-$(uname -r) \
-            autoconf \
-            autoconf-archive \
-            automake \
             libtool \
+            meson \
             pkg-config \
             libkmod-dev \
             libmount-dev \
@@ -36,15 +34,10 @@ jobs:
           pip install -U pip build setuptools
       - name: Configure build
         run: |
-          ./autogen.sh --enable-bindings-python --enable-tests
+          meson setup _build -Dtests=enabled -Dbindings-python=enabled
       - name: Build library
         run: |
-          make -j$(nproc)
-      - name: Build python test suite
-        run: |
-          cd bindings/python
-          make -j$(nproc) python-tests
+          meson compile -C _build -j$(nproc)
       - name: Run python test suite
         run: |
-          cd bindings/python
-          sudo make python-tests-run
+          sudo meson test -C _build --verbose
