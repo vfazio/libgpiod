@@ -12,20 +12,19 @@ typedef struct {
 	struct gpiod_edge_event_buffer *buffer;
 } request_object;
 
-static int request_init(PyObject *Py_UNUSED(ignored0),
-			PyObject *Py_UNUSED(ignored1),
-			PyObject *Py_UNUSED(ignored2))
+static void internal_request_release(request_object *self)
 {
-	PyErr_SetString(PyExc_NotImplementedError,
-			"_ext.LineRequest cannot be instantiated");
-
-	return -1;
+	if (self->request){
+		Py_BEGIN_ALLOW_THREADS;
+		gpiod_line_request_release(self->request);
+		Py_END_ALLOW_THREADS;
+		self->request = NULL;
+	}
 }
 
 static void request_finalize(request_object *self)
 {
-	if (self->request)
-		PyObject_CallMethod((PyObject *)self, "release", "");
+	internal_request_release(self);
 
 	if (self->offsets)
 		PyMem_Free(self->offsets);
@@ -121,10 +120,7 @@ static PyGetSetDef request_getset[] = {
 static PyObject *
 request_release(request_object *self, PyObject *Py_UNUSED(ignored))
 {
-	Py_BEGIN_ALLOW_THREADS;
-	gpiod_line_request_release(self->request);
-	Py_END_ALLOW_THREADS;
-	self->request = NULL;
+	internal_request_release(self);
 
 	Py_RETURN_NONE;
 }
@@ -290,7 +286,7 @@ static PyObject *request_read_edge_events(request_object *self, PyObject *args)
 	if (!ret)
 		return NULL;
 
-	if (max_events_obj != Py_None) {
+	if (!Py_IsNone(max_events_obj)) {
 		max_events = PyLong_AsSize_t(max_events_obj);
 		if (PyErr_Occurred())
 			return NULL;
@@ -384,8 +380,6 @@ PyTypeObject request_type = {
 	.tp_name = "gpiod._ext.Request",
 	.tp_basicsize = sizeof(request_object),
 	.tp_flags = Py_TPFLAGS_DEFAULT,
-	.tp_new = PyType_GenericNew,
-	.tp_init = (initproc)request_init,
 	.tp_finalize = (destructor)request_finalize,
 	.tp_dealloc = (destructor)Py_gpiod_dealloc,
 	.tp_getset = request_getset,
