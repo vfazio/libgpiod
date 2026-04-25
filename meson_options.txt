@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-FileCopyrightText: 2026 Qualcomm Technologies, Inc. and/or its subsidiaries
+
+option('tools', type: 'feature', value: 'disabled',
+  description: 'Build libgpiod command-line tools')
+
+option('gpioset-interactive', type: 'feature', value: 'disabled',
+  description: 'Enable gpioset interactive mode (requires libedit >= 3.1)')
+
+option('tests', type: 'feature', value: 'disabled',
+  description: 'Build the test suite')
+
+option('examples', type: 'feature', value: 'disabled',
+  description: 'Build code examples')
+
+option('bindings-cxx', type: 'feature', value: 'disabled',
+  description: 'Build C++ bindings')
+
+option('bindings-python', type: 'feature', value: 'disabled',
+  description: 'Build Python 3 bindings (requires Python >= 3.10)')
+
+option('bindings-rust', type: 'feature', value: 'disabled',
+  description: 'Build Rust bindings (requires cargo)')
+
+option('bindings-glib', type: 'feature', value: 'disabled',
+  description: 'Build GLib 2.0 / GObject bindings')
+
+option('dbus', type: 'feature', value: 'disabled',
+  description: 'Build the D-Bus daemon and client (implies bindings-glib)')
+
+option('introspection', type: 'feature', value: 'disabled',
+  description: 'Generate GObject introspection data (requires bindings-glib)')
+
+option('systemd', type: 'feature', value: 'disabled',
+  description: 'Install systemd unit and udev rules (requires dbus)')
+
+option('systemd-unit-dir', type: 'string', value: '',
+  description: 'Directory for systemd system unit files (default: from pkg-config)')
