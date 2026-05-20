@@ -360,7 +360,7 @@ class InfoEvent(ThreadedTestCase):
             offsets = list(range(tid, num_lines, 2))
             worker_barrier.wait()
 
-            for i in range(int(self.ITERATIONS / 2)):
+            for i in range(int(self.ITERATIONS)):
                 offset = offsets[i % len(offsets)]
                 with self.chip.request_lines(
                     config={offset: gpiod.LineSettings(direction=Direction.INPUT)}
@@ -713,7 +713,7 @@ class EdgeEvent(ThreadedTestCase):
             offsets = list(range(tid, num_lines, 2))
             worker_barrier.wait()
 
-            for i in range(int(self.ITERATIONS / 2)):
+            for i in range(int(self.ITERATIONS)):
                 offset = offsets[i % len(offsets)]
                 for pull in [gpiosim.Chip.Pull.UP, gpiosim.Chip.Pull.DOWN]:
                     self.sim.set_pull(offset, pull)
