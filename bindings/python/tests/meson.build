@@ -19,6 +19,7 @@ foreach f : [
   'tests_line_request.py',
   'tests_line_settings.py',
   'tests_module.py',
+  'tests_threading.py',
 ]
   fs.copyfile(f)
 endforeach
@@ -30,7 +31,7 @@ test_env.append('LD_LIBRARY_PATH', meson.global_build_root() / 'tests' / 'gpiosi
 
 test('python-tests',
   py,
-  args: ['-B', '-m', 'tests'],
+  args: ['-B', '-X', 'dev', '-X', 'tracemalloc=10', '-m', 'tests'],
   env: test_env,
   is_parallel: false,
 )
