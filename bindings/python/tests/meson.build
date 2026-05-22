@@ -34,4 +34,5 @@ test('python-tests',
   args: ['-B', '-m', 'tests'],
   env: test_env,
   is_parallel: false,
+  timeout: 900,
 )

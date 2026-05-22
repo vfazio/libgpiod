@@ -107,8 +107,8 @@ class ThreadedTestCase(TestCase):
     def setUpClass(cls) -> None:
         cls.NUM_THREADS = 4
         # we want to stress test free threaded builds a bit more
-        cls.ITERATIONS = 200 if is_free_threaded() else 20
-        cls.TIMEOUT = 2
+        cls.ITERATIONS = 100_000 if is_free_threaded() else 20
+        cls.TIMEOUT = 180 if is_free_threaded() else 2
 
 
 class Chip(ThreadedTestCase):
