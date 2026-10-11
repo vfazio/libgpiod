@@ -5,7 +5,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -42,3 +42,15 @@ jobs:
       - name: Run python test suite
         run: |
           sudo meson test -C _build --verbose --print-errorlogs
+  build-wheels:
+    name: Build and verify wheels
+    runs-on: ubuntu-latest
+    env:
+      LIBGPIOD_VERSION: "2.3.1"
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run wheel build script
+        run: |
+          cd bindings/python
+          ./generate_pypi_artifacts.sh -v "${LIBGPIOD_VERSION}" -c -f -o ./wheelhouse
