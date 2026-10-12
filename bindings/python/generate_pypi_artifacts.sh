@@ -58,7 +58,7 @@ while getopts :hv:o:s:cf value; do
 	esac
 done
 
-if [ -z "${source_dir}" ] || [ ! -d "${output_dir}" ]; then
+if [ -z "${source_dir}" ] || [ ! -d "${source_dir}" ]; then
 	printf "Invalid source directory %s.\n" "${source_dir}"
 	exit 1
 fi
