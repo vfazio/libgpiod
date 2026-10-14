@@ -12,7 +12,9 @@ if TYPE_CHECKING:
 
     from .line_settings import LineSettings
 
-__all__ = ["poll_fd", "config_iter"]
+__all__ = ["config_iter", "poll_fd"]
+
+_LINE_ID_TYPES = (int, str)
 
 
 def poll_fd(fd: int, timeout: timedelta | float | None = None) -> bool:
@@ -23,14 +25,14 @@ def poll_fd(fd: int, timeout: timedelta | float | None = None) -> bool:
         sec = timeout
 
     readable, _, _ = select([fd], [], [], sec)
-    return True if fd in readable else False
+    return fd in readable
 
 
 def config_iter(
     config: dict[Iterable[int | str] | int | str, LineSettings | None],
 ) -> Generator[tuple[int | str, LineSettings | None]]:
     for key, settings in config.items():
-        if isinstance(key, int) or isinstance(key, str):
+        if isinstance(key, _LINE_ID_TYPES):
             yield key, settings
         else:
             for subkey in key:

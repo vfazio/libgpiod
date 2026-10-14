@@ -73,7 +73,7 @@ class Chip:
         Returns:
           True if the chip is open and False if it's closed.
         """
-        return True if self._chip else False
+        return self._chip is not None
 
     def __enter__(self) -> Chip:
         """
@@ -149,7 +149,7 @@ class Chip:
                     except ValueError:
                         raise ex
                 else:
-                    raise ex
+                    raise
         else:
             offset = id
 
@@ -275,13 +275,13 @@ class Chip:
                 for line, value in output_values.items()
             }
 
-        name_map = dict()
-        requested_lines = list()
-        global_output_values = list()
-        seen_offsets = set()
+        name_map: dict[str, int] = {}
+        requested_lines: list[int | str] = []
+        global_output_values: list[Value] = []
+        seen_offsets: set[int] = set()
 
         for line, settings in config_iter(config):
-            offsets = list()
+            offsets: list[int] = []
 
             offset = self.line_offset_from_id(line)
             # don't allow offset repetitions or offset-name conflicts.
