@@ -58,13 +58,13 @@ while getopts :hv:o:s:cf value; do
 	esac
 done
 
-if [ -z "${source_dir}" ] || [ ! -d "${output_dir}" ]; then
+if [ -z "${source_dir}" ] || [ ! -d "${source_dir}" ]; then
 	printf "Invalid source directory %s.\n" "${source_dir}"
 	exit 1
 fi
 
-if [ -z "${output_dir}" ] || [ ! -w "${output_dir}" ]; then
-	printf "Output directory %s is not writable.\n" "${output_dir}"
+if [ -z "${output_dir}" ] || [ ! -d "${output_dir}" ] || [ ! -w "${output_dir}" ]; then
+	printf "Output directory %s is not writable directory.\n" "${output_dir}"
 	exit 1
 fi
 
@@ -108,7 +108,7 @@ python3 -m "${venv_module}" .venv
 venv_python="${temp_dir}/.venv/bin/python"
 
 # Install build dependencies
-${venv_python} -m pip install build==1.3.0 cibuildwheel==3.2.1
+${venv_python} -m pip install build==1.6.1 cibuildwheel==4.3.4
 
 LIBGPIOD_VERSION=${src_version} ${venv_python} -m build --sdist --outdir ./dist "${source_dir}"
 sdist=$(find ./dist -name '*.tar.gz')
